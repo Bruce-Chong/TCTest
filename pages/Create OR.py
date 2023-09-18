@@ -23,8 +23,12 @@ except:
     current_path = (Path.cwd())
 
 # import the inv_sheet from the excel file
+#filepath = os.path.join(current_path, 'TestData.xlsx')
+if 'file' not in st.session_state:
+    st.write("Please set file path at Menu first!")
+else:
+    filepath = st.session_state.file
 
-filepath = os.path.join(current_path, 'TestData.xlsx')
 wb = openpyxl.load_workbook(filepath)
 ekpo_sheet = wb['EKPO']
 ekpo_sheet.delete_rows(1)
