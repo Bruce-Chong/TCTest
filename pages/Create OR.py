@@ -47,7 +47,7 @@ dic = dict(zip(options, l_fac))
 
 # set API key here
 client_id = "nike.sapcp.apim"
-client_secret = "ahfkdDlcyaQDFByMFp1EkYj8PEGDq8yDD-7D8kPc15CM_AzOESkBeb5e94Sn3T9S"
+client_secret = "insert secret here"
 grant_type = "client_credentials"
 tokendata = {
     "grant_type": grant_type,
@@ -56,7 +56,7 @@ tokendata = {
 }
 
 #get token
-nike_auth_url = "https://nike-qa.oktapreview.com/oauth2/ausa0mcornpZLi0C40h7/v1/token"
+nike_auth_url = "insert url here"
 auth_response = requests.post(nike_auth_url, data=tokendata)
 token = json.loads(auth_response.text)['access_token']
 #print (token)
@@ -146,12 +146,12 @@ def post_api(po, ctrl_no, uuid, fci, zfty):
             \r\n<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" SOAP-ENV:encodingStyle=\"http://www.w3.org/2001/12/soap-encoding\">
             \r\n    <SOAP-ENV:Body>
             \r\n        <XMLBundle GeneratedBy=\"NKE_OUTBOUND_OR\" TrackID=\"95585806\">
-            \r\n            <XMLTransmission CtrlNumber=\"{0}\" Receiver=\"NKE\" Sender=\"NIKETRADET\" SourceOwner=\"FHRCLNT300\" Timestamp=\"20230213 234334\">
+            \r\n            <XMLTransmission CtrlNumber=\"{0}\" Receiver=\"NKE\" Sender=\"NIKETRADET\" SourceOwner=\"FH2CLNT300\" Timestamp=\"20230213 234334\">
             \r\n                <XMLGroup CtrlNumber=\"904336\" GroupType=\"BP\" IncludedMessages=\"1\">
-            \r\n                    <XMLTransaction CtrlNumber=\"RID-{1}-{2}\" TransactionType=\"BPM-861\">
+            \r\n                    <XMLTransaction CtrlNumber=\"{2}\" TransactionType=\"BPM-861\">
             \r\n                        <BpMessage MessageType=\"861\" PurposeCd=\"00\">
             \r\n                            <Mode>{3}</Mode>
-            \r\n                            <Reference SourceRefTypeCd=\"128\" RefTypeCd=\"06\">FHRCLNT300</Reference>
+            \r\n                            <Reference SourceRefTypeCd=\"128\" RefTypeCd=\"06\">FH2CLNT300</Reference>
             \r\n                            <Date TimeZone=\"UTC+7\" DateTypeCd=\"922\">{4} 1211</Date>
             \r\n                            <Location LocTypeCd=\"RL\">
             \r\n                                <LocationID Qualifier=\"UN\">{5}</LocationID>
@@ -177,7 +177,7 @@ def post_api(po, ctrl_no, uuid, fci, zfty):
             \r\n            </XMLTransmission>
             \r\n        </XMLBundle>
             \r\n    </SOAP-ENV:Body>
-            \r\n</SOAP-ENV:Envelope>""".format(uuid, po, ctrl_no, VehicleTypeCode, today_dt, zpoo, vendorCode, zplant, ttl_line)
+            \r\n</SOAP-ENV:Envelope>""".format(uuid, po, fci, VehicleTypeCode, today_dt, zpoo, vendorCode, zplant, ttl_line)
 
     st.write(source)
     #r = requests.request("POST", base_url, headers=headers, data=jsource)

@@ -46,7 +46,7 @@ dic = dict(zip(options, l_fac))
 
 # set API key here
 client_id = "nike.sapcp.apim"
-client_secret = "ahfkdDlcyaQDFByMFp1EkYj8PEGDq8yDD-7D8kPc15CM_AzOESkBeb5e94Sn3T9S"
+client_secret = "secret here"
 grant_type = "client_credentials"
 tokendata = {
     "grant_type": grant_type,
@@ -55,7 +55,7 @@ tokendata = {
 }
 
 #get token
-nike_auth_url = "https://nike-qa.oktapreview.com/oauth2/ausa0mcornpZLi0C40h7/v1/token"
+nike_auth_url = "url here"
 auth_response = requests.post(nike_auth_url, data=tokendata)
 token = json.loads(auth_response.text)['access_token']
 #print (token)
