@@ -56,11 +56,11 @@ tokendata = {
 
 #get token
 nike_auth_url = "url here"
-auth_response = requests.post(nike_auth_url, data=tokendata)
-token = json.loads(auth_response.text)['access_token']
+##auth_response = requests.post(nike_auth_url, data=tokendata)
+##token = json.loads(auth_response.text)['access_token']
 #print (token)
 contentype = "'Content-Type': 'application/json'"
-headers = { 'Authorization' : 'Bearer ' +token , 'Content-type': contentype}
+##headers = { 'Authorization' : 'Bearer ' +token , 'Content-type': contentype}
 
 ######Set today's date###############
 today_dt = datetime.now()
