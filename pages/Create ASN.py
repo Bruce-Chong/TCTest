@@ -65,7 +65,7 @@ contentype = "'Content-Type': 'application/json'"
 ######Set today's date###############
 today_dt = datetime.now()
 tmr_dt = today_dt + timedelta(days=1)
-today_dt = today_dt.strftime("%Y-%m-%d")
+today_dt = today_dt.strftime("%Y%m%d")
 today_dts = str(today_dt) + "T01:00:00Z"
 tmr_dt = tmr_dt.strftime("%Y-%m-%d")
 
@@ -154,7 +154,7 @@ def update_field(zpo, zfty):
                 if masteritm != "0":
                     total_ship["deliveries"][lineno]["deliveryItems"] = total_del["deliveryItems"]
                     total_ship["deliveries"] += jship["deliveries"]
-                    total_del = empty_del
+                    total_del = {"deliveryItems": [{}]}
                     lineno = lineno + 1
 
                 else:
@@ -163,6 +163,7 @@ def update_field(zpo, zfty):
                 masteritm = EBELP
                 deliveryno = deliveryno + 1
                 deliveryitmno = 1
+
                 
             else:
                 deliveryItems = {
@@ -182,8 +183,10 @@ def update_field(zpo, zfty):
 
                 if total_del == empty_del:
                     total_del["deliveryItems"] = deliveryItems["deliveryItems"]
+                    st.write("delivery itmno is " + str(deliveryitmno) + " at empty delivery")
                 else:
                     total_del["deliveryItems"] += deliveryItems["deliveryItems"]
+                    st.write("delivery itmno is " + str(deliveryitmno) + " at else add on delivery")
 
                 goodsHolders = {
                     "goodsHolders": [
