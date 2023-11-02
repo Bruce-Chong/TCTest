@@ -9,6 +9,8 @@ import requests
 import json
 import xml.etree.ElementTree as ET
 
+
+
 st.set_page_config(page_title='Create OR')
 st.title('Create OR')
 st.subheader('Choose an action')
@@ -65,7 +67,7 @@ contentype = "'Content-Type': 'application/json'"
 
 ######Set today's date###############
 today_dt = datetime.now()
-today_dt = today_dt.strftime("%Y-%m-%d")
+today_dt = today_dt.strftime("%Y%m%d")
 
 
 def is_number(s):
@@ -147,12 +149,12 @@ def post_api(po, ctrl_no, uuid, fci, zfty, zrid, ztcci):
             \r\n<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" SOAP-ENV:encodingStyle=\"http://www.w3.org/2001/12/soap-encoding\">
             \r\n    <SOAP-ENV:Body>
             \r\n        <XMLBundle GeneratedBy=\"NKE_OUTBOUND_OR\" TrackID=\"95585806\">
-            \r\n            <XMLTransmission CtrlNumber=\"{0}\" Receiver=\"NKE\" Sender=\"NIKETRADET\" SourceOwner=\"FH2CLNT300\" Timestamp=\"20230213 234334\">
+            \r\n            <XMLTransmission CtrlNumber=\"{0}\" Receiver=\"NKE\" Sender=\"NIKETRADET\" SourceOwner=\"FHQCLNT300\" Timestamp=\"20230213 234334\">
             \r\n                <XMLGroup CtrlNumber=\"904336\" GroupType=\"BP\" IncludedMessages=\"1\">
             \r\n                    <XMLTransaction CtrlNumber=\"{9}\" TransactionType=\"BPM-861\">
             \r\n                        <BpMessage MessageType=\"861\" PurposeCd=\"00\">
             \r\n                            <Mode>{3}</Mode>
-            \r\n                            <Reference SourceRefTypeCd=\"128\" RefTypeCd=\"06\">FH2CLNT300</Reference>
+            \r\n                            <Reference SourceRefTypeCd=\"128\" RefTypeCd=\"06\">FHQCLNT300</Reference>
             \r\n                            <Date TimeZone=\"UTC+7\" DateTypeCd=\"922\">{4} 1211</Date>
             \r\n                            <Location LocTypeCd=\"RL\">
             \r\n                                <LocationID Qualifier=\"UN\">{5}</LocationID>
@@ -180,7 +182,9 @@ def post_api(po, ctrl_no, uuid, fci, zfty, zrid, ztcci):
             \r\n    </SOAP-ENV:Body>
             \r\n</SOAP-ENV:Envelope>""".format(uuid, po, fci, VehicleTypeCode, today_dt, zpoo, vendorCode, zplant, ttl_line, zrid)
 
-    st.write(source)
+    element = ET.XML(source)
+    ET.indent(element)
+    st.write(ET.tostring(element, encoding='utf-8'))
     #r = requests.request("POST", base_url, headers=headers, data=jsource)
     #print(r.text)
     return None
