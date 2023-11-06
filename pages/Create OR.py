@@ -184,7 +184,8 @@ def post_api(po, ctrl_no, uuid, fci, zfty, zrid, ztcci):
 
     element = ET.XML(source)
     ET.indent(element)
-    st.write(ET.tostring(element, encoding='utf-8'))
+    #st.write(ET.tostring(element, encoding='utf-8'))
+    st.write(source)
     #r = requests.request("POST", base_url, headers=headers, data=jsource)
     #print(r.text)
     return None
