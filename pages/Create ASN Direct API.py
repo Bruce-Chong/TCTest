@@ -25,32 +25,57 @@ db_token = os.getenv("DATABRICKS_TOKEN")
 db_hostname = os.getenv("DATABRICKS_SERVER_HOSTNAME")
 db_http = os.getenv("DATABRICKS_HTTP_PATH")
 
-def fetch_data(l_po):
+# set N API key here
+client_id = os.getenv("CLIENT_ID")
+client_secret = os.getenv("CLIENT_SECRET")
+grant_type = "client_credentials"
+tokendata = {
+    "grant_type": grant_type,
+    "client_id": client_id,
+    "client_secret": client_secret
+}
+nike_auth_url = os.getenv("NIKE_AUTH_URL")
+FHQ_URL = os.getenv("FHQ_URL")
+
+def get_auth_header(auth_url):
+    auth_response = requests.post(nike_auth_url, data=tokendata)
+    token = json.loads(auth_response.text)['access_token']
+    contentype = "'Content-Type': 'application/json'"
+    headers = { 'Authorization' : 'Bearer ' +token , 'Content-type': contentype}
+    return headers
+
+def fetch_data(l_po, zpo_itm):
     try:
-        # Ensure the list is not empty
         if not l_po:
             st.warning("No PO numbers provided.")
             return None
 
-        # Create a parameterized SQL query with placeholders
-
+        # Prepare PO header and item number filters
         po_list_str = ",".join(f"'{po}'" for po in l_po)
+        item_list_str = ",".join(f"'{item}'" for item in zpo_itm) if zpo_itm else None
+
+        # Build the query with both filters
         query = f"""
-            SELECT distinct 
-            a.po_header_nbr, 
-            a.po_item_nbr, 
-            b.plant_cd,
-            b.po_shipping_instruction_cd,
-            b.product_cd,
-            a.size_cd,
-            a.po_on_order_qty,
-            a.order_qty_uom,
-            b.request_tracking_nbr
+            SELECT DISTINCT 
+                a.po_header_nbr, 
+                a.po_item_nbr, 
+                b.plant_cd,
+                b.po_shipping_instruction_cd,
+                b.product_cd,
+                a.size_cd,
+                a.po_on_order_qty,
+                a.order_qty_uom,
+                b.request_tracking_nbr
             FROM development.perf_purchase_order.curated_po_item_size_schedule_line_v a
             JOIN development.perf_purchase_order.curated_po_item_v b
-            ON a.po_header_nbr = b.po_header_nbr
-            WHERE a.po_header_nbr in ({po_list_str}) and a.po_on_order_qty <> 0
+                ON a.po_header_nbr = b.po_header_nbr
+            WHERE a.po_header_nbr IN ({po_list_str})
+              AND a.po_on_order_qty <> 0
         """
+
+        # Add item number filter if provided
+        if item_list_str:
+            query += f" AND a.po_item_nbr IN ({item_list_str})"
 
         # Connect to Databricks
         connection = sql.connect(
@@ -59,14 +84,10 @@ def fetch_data(l_po):
             access_token=db_token
         )
 
-        # Execute the query with parameters
         cursor = connection.cursor()
-        cursor.execute(query, l_po)
+        cursor.execute(query)
         data = cursor.fetchall()
 
-        #st.write(data)
-
-        # Clean up
         cursor.close()
         connection.close()
 
@@ -113,7 +134,7 @@ tokendata = {
     "client_id": client_id,
     "client_secret": client_secret
 }
-nike_auth_url = "url here"
+
 # auth_response = requests.post(nike_auth_url, data=tokendata)
 # token = json.loads(auth_response.text)['access_token']
 # headers = { 'Authorization' : 'Bearer ' + token , 'Content-type': 'application/json' }
@@ -121,7 +142,7 @@ nike_auth_url = "url here"
 # Set today's date
 today_dt = datetime.now()
 tmr_dt = today_dt + timedelta(days=1)
-today_dt = today_dt.strftime("%Y%m%d")
+today_dt = today_dt.strftime("%Y-%m-%d")
 today_dts = str(today_dt) + "T01:00:00Z"
 tmr_dt = tmr_dt.strftime("%Y-%m-%d")
 st.session_state.today_dt = str(today_dt)
@@ -140,7 +161,7 @@ def is_number(s):
     except ValueError:
         return str(s)
 
-def update_field(zpo, zfty):
+def update_field(zpo, zpo_itm, zfty):
     empty_del = {"deliveryItems": [{}]}
     total_ship = {"deliveries": []}
     total_gh = {"goodsHolders": []}
@@ -166,7 +187,7 @@ def update_field(zpo, zfty):
         # 'QUANTITY', 'UOM', 'NODECODE', 'GROSSWEIGHT', ...
     ]
 
-    ekpo_data = fetch_data(zpo)
+    ekpo_data = fetch_data(zpo, zpo_itm)
 
     # Create the DataFrame with column names
     ekpo_df = pd.DataFrame(ekpo_data, columns=ekpo_columns)
@@ -262,7 +283,14 @@ def post_api(ttl_ship, zpo, zfty, ttl_gh, ekpo_df):
         st.write(x)
         zplant = is_number(ekpo_df.loc[ekpo_df['EBELN'] == str(x), 'WERKS'].iloc[0])
         VehicleTypeCode = ekpo_df.loc[ekpo_df['EBELN'] == str(x), 'EVERS'].iloc[0]
-        zpod = is_number(pod_df.loc[pod_df['WERKS'] == int(zplant), VehicleTypeCode].iloc[0])
+
+        filtered_df = pod_df.loc[pod_df['WERKS'] == int(zplant), VehicleTypeCode]
+        if not filtered_df.empty:
+            zpod = is_number(filtered_df.iloc[0])
+        else:
+            st.error(f"No matching data found for Port of Destination: {zplant}")
+            zpod = st.text_input('Enter value for port of destination, if VL, e.g USMEM, or MEM for none VL')
+
         zshipcode = is_number(shipcode_df.loc[shipcode_df['ShipMode'] == VehicleTypeCode, 'ShipCode'].iloc[0])
         zpoo = is_number(poo_df.loc[poo_df['Factory'] == zfty, VehicleTypeCode].iloc[0])
         vendorCode = is_number(shipcode_df.loc[shipcode_df['ShipMode'] == VehicleTypeCode, 'LSPCode'].iloc[0])
@@ -353,13 +381,20 @@ def post_api(ttl_ship, zpo, zfty, ttl_gh, ekpo_df):
     source["shipment"]["deliveries"] = ttl_ship["deliveries"]
     source["shipment"]["goodsHolders"] = ttl_gh["goodsHolders"]
     st.write(source)
+    return source
 ###################create GUI##################
 
 with st.form("Creat ASN"):
-    st.write("Remember to download PO data into Testdata.xls")
+    st.write("No need for PO nor TestData.xls")
     #in_UUID = st.text_input("UUID")
+
+    # Streamlit input field with default value
+
+    auth_url = st.text_input("FHQ API URL", value=FHQ_URL)
+
     in_RID = st.text_input("Receipt ID")
-    in_PO = st.text_input("CRPO number. Use , for more than one(no space)")
+    in_PO = st.text_input("CRPO number. Use , for more than one(no space).  IMPT! Do not put more than one PO if you enter PO item number")
+    in_POitm = st.text_input("PO item number like 100 or 200 with no zeros in front, leave blank for all item. Use , for more than one(no space)")
     in_TCCI = st.text_input("TCCI number")
     in_PDD = st.text_input("Planned Discharge Date like 2023-08-23")
     in_EDT = st.text_input("estimated Delivery Time stamp like 2023-07-31")
@@ -370,9 +405,13 @@ with st.form("Creat ASN"):
 
     # Every form must have a submit button.
     submitted = st.form_submit_button("Create ASN from PO")
-    
+
     if submitted:
         l_po = in_PO.split(",")
+
+        # Split the input by commas and strip whitespace
+        po_items = [item.strip() for item in in_POitm.split(',') if item.strip()]
+
         # Generate a random UUID (version 4)
         st.session_state.UUID = str(uuid.uuid4())
         st.session_state.RID = in_RID
@@ -380,7 +419,12 @@ with st.form("Creat ASN"):
         st.session_state.PDD = in_PDD
         st.session_state.EDT = str(in_EDT) + "T01:00:00Z"
         try:
-            update_field(l_po, str(in_FTY))
+            payload = update_field(l_po, po_items, str(in_FTY))
+            if post_flag:
+                headers = get_auth_header(auth_url)
+                r = requests.request("POST", auth_url, headers=headers, data=payload)
+                print(r.text)
+
         except Exception as E:
             st.write(E)
 
