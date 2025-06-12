@@ -32,13 +32,20 @@ grant_type = "client_credentials"
 tokendata = {
     "grant_type": grant_type,
     "client_id": client_id,
-    "client_secret": client_secret
+    "client_secret": client_secret,
+    "scope": "ship.shipment.request.create"
 }
 nike_auth_url = os.getenv("NIKE_AUTH_URL")
-FHQ_URL = os.getenv("FHQ_URL")
+FHR_URL = os.getenv("FHR_URL")
 
-def get_auth_header(auth_url):
-    auth_response = requests.post(nike_auth_url, data=tokendata)
+def get_auth_header():
+    auth_header = {
+        'Cache-Control': 'max-age=1200',
+        'Content-Type': 'application/x-www-form-urlencoded'  # not 'urlencoded'
+    }
+
+    auth_response = requests.post(nike_auth_url, headers=auth_header, data=tokendata)
+    st.write(auth_response,nike_auth_url , tokendata)
     token = json.loads(auth_response.text)['access_token']
     contentype = "'Content-Type': 'application/json'"
     headers = { 'Authorization' : 'Bearer ' +token , 'Content-type': contentype}
@@ -125,20 +132,6 @@ fac_df = pd.read_excel(filepath, engine='openpyxl', sheet_name='factory')
 l_fac = fac_df['vendor'].tolist()
 options = fac_df['vendor'].tolist()
 dic = dict(zip(options, l_fac))
-
-# Set API key and token (commented out for now)
-client_id = "nike.sapcp.apim"
-client_secret = "secret here"
-grant_type = "client_credentials"
-tokendata = {
-    "grant_type": grant_type,
-    "client_id": client_id,
-    "client_secret": client_secret
-}
-
-# auth_response = requests.post(nike_auth_url, data=tokendata)
-# token = json.loads(auth_response.text)['access_token']
-# headers = { 'Authorization' : 'Bearer ' + token , 'Content-type': 'application/json' }
 
 # Set today's date
 today_dt = datetime.now()
@@ -273,13 +266,12 @@ def update_field(zpo, zpo_itm, zfty):
 
         deliveryno += 1
 
-    post_api(total_ship, zpo, zfty, total_gh, ekpo_df)
-    return None
+    payload = post_api(total_ship, zpo, zfty, total_gh, ekpo_df)
+    return payload
 
 
 def post_api(ttl_ship, zpo, zfty, ttl_gh, ekpo_df):
-    # url and data definition
-    base_url = "https://nikecfqaapiportal.prod.apimanagement.us20.hana.ondemand.com:443/delivery/v1/TCOutboundDelivery"
+
     st.dataframe(ekpo_df)
     for x in zpo:
         # if x != '[' and x != ']' and x != "'":
@@ -397,7 +389,6 @@ def post_api(ttl_ship, zpo, zfty, ttl_gh, ekpo_df):
     }
     source["shipment"]["deliveries"] = ttl_ship["deliveries"]
     source["shipment"]["goodsHolders"] = ttl_gh["goodsHolders"]
-    st.write(source)
     return source
 ###################create GUI##################
 
@@ -407,7 +398,7 @@ with st.form("Creat ASN"):
 
     # Streamlit input field with default value
 
-    auth_url = st.text_input("FHQ API URL", value=FHQ_URL)
+    auth_url = st.text_input("FHR API URL", value=FHR_URL)
 
     in_RID = st.text_input("Receipt ID")
     in_PO = st.text_input("CRPO number. Use , for more than one(no space).  IMPT! Do not put more than one PO if you enter PO item number")
@@ -438,9 +429,12 @@ with st.form("Creat ASN"):
         try:
             payload = update_field(l_po, po_items, str(in_FTY))
             if post_flag:
-                headers = get_auth_header(auth_url)
-                r = requests.request("POST", auth_url, headers=headers, data=payload)
-                print(r.text)
+                headers = get_auth_header()
+                st.write(payload)
+                r = requests.request("POST", auth_url, headers=headers, json=payload)
+                st.write(r.text)
+            else:
+                st.write(payload)
 
         except Exception as E:
             st.write(E)
