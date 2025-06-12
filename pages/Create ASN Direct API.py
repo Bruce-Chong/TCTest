@@ -210,6 +210,7 @@ def update_field(zpo, zpo_itm, zfty):
             qty = int(Decimal(str(row['QTY']).strip("Decimal('')")))
             uom = row['UOM'].replace(" ", "")  # Adjust if column index has changed
             dtr = row['DTR'].replace(" ", "")
+            plant = row['WERKS'].replace(" ", "")
 
             deliveryItems.append({
                 "deliveryNoteItemNumber": str(deliveryitmno),
@@ -244,7 +245,7 @@ def update_field(zpo, zpo_itm, zfty):
             "deliveryNoteNumber": str(deliveryno),
             "receiptId": st.session_state.RID,
             "plannedGoodsReceiptDate": tmr_dt,
-            "assignedNodeCode": is_number(deliveryno),
+            "assignedNodeCode": plant,
             "deliveryReferenceAttributes": [
                 {"referenceTypeCode": "ORIGINAL_DELIVERY_NUMBER", "referenceText": st.session_state.TCCI},
                 {"referenceTypeCode": "INVOICE_DATE", "referenceText": today_dt},
