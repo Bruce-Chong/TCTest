@@ -65,7 +65,8 @@ def fetch_data(l_po, zpo_itm):
                 a.size_cd,
                 a.po_on_order_qty,
                 a.order_qty_uom,
-                b.request_tracking_nbr
+                b.request_tracking_nbr,
+                b.sold_to_nbr
             FROM development.perf_purchase_order.curated_po_item_size_schedule_line_v a
             JOIN development.perf_purchase_order.curated_po_item_v b
                 ON a.po_header_nbr = b.po_header_nbr
@@ -181,7 +182,8 @@ def update_field(zpo, zpo_itm, zfty):
         'TXZ01',  # 5
         'QTY',
         'UOM',
-        'DTR'
+        'DTR',
+        'KUNNR'
         # Add more column names here if your data has more fields
         # For example:
         # 'QUANTITY', 'UOM', 'NODECODE', 'GROSSWEIGHT', ...
@@ -284,6 +286,7 @@ def post_api(ttl_ship, zpo, zfty, ttl_gh, ekpo_df):
         st.write(x)
         zplant = is_number(ekpo_df.loc[ekpo_df['EBELN'] == str(x), 'WERKS'].iloc[0])
         VehicleTypeCode = ekpo_df.loc[ekpo_df['EBELN'] == str(x), 'EVERS'].iloc[0]
+        kunnr = ekpo_df.loc[ekpo_df['EBELN'] == str(x), 'KUNNR'].iloc[0]
 
         filtered_df = pod_df.loc[pod_df['WERKS'] == int(zplant), VehicleTypeCode]
         if not filtered_df.empty:
@@ -295,6 +298,22 @@ def post_api(ttl_ship, zpo, zfty, ttl_gh, ekpo_df):
         zshipcode = is_number(shipcode_df.loc[shipcode_df['ShipMode'] == VehicleTypeCode, 'ShipCode'].iloc[0])
         zpoo = is_number(poo_df.loc[poo_df['Factory'] == zfty, VehicleTypeCode].iloc[0])
         vendorCode = is_number(shipcode_df.loc[shipcode_df['ShipMode'] == VehicleTypeCode, 'LSPCode'].iloc[0])
+
+        if kunnr == '*UNK*':
+            SDA = {
+                    "shipmentDestinationAddress": {
+                        "shipmentDestinationCode": zplant,
+                        "shipmentDestinationTypeCode": "DC"
+                    }
+                }
+        else:
+            SDA = {
+                "shipmentDestinationAddress": {
+                    "shipmentDestinationCode": kunnr,
+                    "shipmentDestinationTypeCode": "CUSTOMER"
+                }
+            }
+
 
     source = {
         "event": {
@@ -327,10 +346,7 @@ def post_api(ttl_ship, zpo, zfty, ttl_gh, ekpo_df):
                 "shipmentOriginCode": zpoo,
                 "shipmentOriginTypeCode": zshipcode
             },
-            "shipmentDestinationAddress": {
-                "shipmentDestinationCode": zplant,
-                "shipmentDestinationTypeCode": "DC"
-            },
+            "shipmentDestinationAddress":SDA["shipmentDestinationAddress"],
             "shipmentVendors": [
                 {
                     "vendorTypeCode": "FORWARDER",
